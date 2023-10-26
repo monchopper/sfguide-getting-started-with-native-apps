@@ -12,3 +12,6 @@ def cal_distance(lat1,lon1,lat2,lon2):
 # process_supply_day + duration + recovery_weeks * 7 (days)
 def cal_lead_time(i,j,k):
    return i + j + k
+
+def hello_world():
+   return "Hello World!"

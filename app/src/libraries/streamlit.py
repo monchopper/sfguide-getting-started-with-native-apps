@@ -10,6 +10,31 @@ st.set_page_config(layout="wide")
 session = get_active_session()
 
 def load_app(orders_table,site_recovery_table):
+   
+    if st.button('Run Proc'):
+         df_ext_func = session.sql(f"call app_instance_schema.create_external_function()").collect()
+         st.write(df_ext_func)
+    else:
+        st.write('Goodbye')
+
+    if st.button('Send to Monitorial'):
+         df_call_ext_func = session.sql(f"call app_instance_schema.call_monitorial_dispatch()").collect()
+         st.write(df_call_ext_func)
+    else:
+        st.write('Goodbye')
+
+    if st.button('Create Network Rule'):
+         df_net_func = session.sql(f"call app_instance_schema.create_network_rule()").collect()
+         st.write(df_net_func)
+    else:
+        st.write('Goodbye')
+
+    if st.button('Create Network Policy'):
+         df_net_func = session.sql(f"call app_instance_schema.create_network_policy()").collect()
+         st.write(df_net_func)
+    else:
+        st.write('Goodbye')
+
     with st.spinner("Loading lead time, order status, and supplier performance. Please wait..."):
         df = session.sql(f"SELECT t1.order_id,t2.ship_order_id,t1.material_name,t1.supplier_name, t1.quantity, t1.cost, t2.status, t2.lat, t2.lon FROM {orders_table} as t1 INNER JOIN MFG_SHIPPING as t2 ON t2.ORDER_ID = t1.ORDER_ID ORDER BY t1.order_id")
         df_order_status = df.group_by('status').agg(count_distinct('order_id').as_('TOTAL RECORDS')).order_by('status').to_pandas()
@@ -82,6 +107,20 @@ if len(orders_reference_associations) == 0:
 site_recovery_reference_associations = permission.get_reference_associations("site_recovery_table")
 if len(site_recovery_reference_associations) == 0:
     permission.request_reference("site_recovery_table")
+    exit(0)
+
+api_integration_reference_associations = permission.get_reference_associations("MONITORIAL_API_INTEGRATION_DEV")
+if len(api_integration_reference_associations) == 0:
+    #permission.request_aws_api_integration("MONITORIAL_API_INTEGRATION_DEV", "https://dbklng06vi.execute-api.ap-southeast-2.amazonaws.com/dev", permission.AwsGateway.API_GATEWAY, "arn:aws:iam::985365143406:role/6da5d32e-85c7-4a52-8caa-672216f47cb9-role-lambda", None, "MONITORIAL_API_INTEGRATION_DEV", None)
+    permission.request_reference("MONITORIAL_API_INTEGRATION_DEV")
+    #st.write("Call procedure to create integration")
+    #df_ext_func = session.sql(f"call app_instance_schema.create_external_function()").collect()
+    #st.write(df_ext_func)
+    exit(0)
+
+external_access_integration_reference_associations = permission.get_reference_associations("monitorial_access_integration")
+if len(external_access_integration_reference_associations) == 0:
+    permission.request_reference("monitorial_access_integration")
     exit(0)
 
 st.title("Where Are My Ski Goggles?")

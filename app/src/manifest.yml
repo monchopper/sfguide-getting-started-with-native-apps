@@ -34,3 +34,19 @@ references:
       object_type: Table 
       multi_valued: false 
       register_callback: app_instance_schema.update_reference
+  - MONITORIAL_API_INTEGRATION_DEV:
+      label: "Monitorial Access Integration"
+      description: "A external access integration that exists outside the application"
+      privileges:
+      - USAGE
+      object_type: API INTEGRATION
+      multi_valued: false
+      register_callback: app_instance_schema.update_reference
+  #- MONITORIAL_NETWORK_INTEGRATION_DEV:
+  #    label: "Monitorial Access Integration"
+  #    description: "A external access integration that exists outside the application"
+  #    privileges:
+  #    - USAGE
+  #    object_type: EXTERNAL ACCESS INTEGRATION
+  #    multi_valued: false
+  #    register_callback: app_instance_schema.update_reference
