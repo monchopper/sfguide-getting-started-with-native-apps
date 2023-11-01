@@ -118,10 +118,10 @@ if len(api_integration_reference_associations) == 0:
     #st.write(df_ext_func)
     exit(0)
 
-external_access_integration_reference_associations = permission.get_reference_associations("monitorial_access_integration")
-if len(external_access_integration_reference_associations) == 0:
-    permission.request_reference("monitorial_access_integration")
-    exit(0)
+#external_access_integration_reference_associations = permission.get_reference_associations("monitorial_access_integration")
+#if len(external_access_integration_reference_associations) == 0:
+#    permission.request_reference("monitorial_access_integration")
+#    exit(0)
 
 st.title("Where Are My Ski Goggles?")
 orders_table = "reference('order_table')"

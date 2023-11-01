@@ -6,52 +6,6 @@
 create application role if not exists app_instance_role;
 create or alter versioned schema app_instance_schema;
 
-create or replace task app_instance_schema.ENABLED_USER_PREVIOUSLY_DISABLED
-	schedule='1440 minute'
-	USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE='xsmall'
-	as EXECUTE IMMEDIATE $$
-            DECLARE
-                alert_payload VARIANT;
-                alert_message_type VARCHAR DEFAULT '';
-                alert_display_message VARCHAR DEFAULT 'User previously disable have been enabled';
-                alert_account_name VARCHAR DEFAULT (SELECT current_account());
-                alert_name VARCHAR DEFAULT 'PC_MONITORIAL_DB.custom_monitors.enabled_user_previously_disabled';
-                alert_severity VARCHAR DEFAULT 'error';
-                alert_environment VARCHAR DEFAULT 'unit-test';
-                alert_payload_recieved VARCHAR DEFAULT '';
-            BEGIN
-                
-                WITH baseAlertQuery AS (
-                       
-select
-    end_time,
-    query_type,
-    query_text,
-    user_name,
-    role_name
-from 
-    snowflake.account_usage.query_history 
-where
-    execution_status = 'SUCCESS'
-    and query_type = 'ALTER_USER'
-    and query_text ilike '%alter user%set disabled = false%'
-    and end_time >= dateadd(minutes, -1440, current_timestamp)
-order by end_time desc
-                ),
-                arrayCreation AS (
-                        SELECT ARRAY_AGG(OBJECT_CONSTRUCT(*)) AS alert_body
-                        FROM baseAlertQuery
-                    )
-                    SELECT alert_body INTO :alert_payload FROM arrayCreation;
-                IF (:alert_payload != []) THEN
-                    SELECT pc_monitorial_db.utils.monitorial_dispatch(:alert_account_name,:alert_name,:alert_environment,:alert_message_type,:alert_severity,:alert_display_message,:alert_payload)
-                    INTO :alert_payload_recieved;
-                    RETURN :alert_payload_recieved;
-                ELSE
-                    RETURN 'No notification fired';
-                END IF;
-            END
-        $$;
 
 -- Share data
 create or replace view app_instance_schema.MFG_SHIPPING as select * from shared_content_schema.MFG_SHIPPING;
@@ -92,8 +46,6 @@ runtime_version = '3.8'
 packages = ('snowflake-snowpark-python')
 imports = ('/libraries/udf.py')
 handler = 'udf.hello_world';
-
-
 
 create or replace procedure app_instance_schema.create_network_rule()
 returns string
