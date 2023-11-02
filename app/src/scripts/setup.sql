@@ -84,7 +84,7 @@ BEGIN
   RUNTIME_VERSION = ''11''
   IMPORTS = (''/libraries/mssql-jdbc-12.4.2.jre11.jar'')
   EXTERNAL_ACCESS_INTEGRATIONS = (monitorial_access_integration)
-  SECRETS = (''cred'' = NATIVE_APP_QUICKSTART_APP_5.APP_INSTANCE_SCHEMA.external_database_cred )
+  SECRETS = (''cred'' = SQL_SYNC_SANDPIT.APP_INSTANCE_SCHEMA.external_database_cred )
   HANDLER = ''JdbcDataReader''
 AS $$
 import java.sql.*;
