@@ -23,5 +23,11 @@ def load_app():
     else:
         st.write('Goodbye')
 
+    if st.button('Create JDBC Function'):
+         df_jdbc_func = session.sql(f"call app_instance_schema.create_read_jdbc()").collect()
+         st.write(df_jdbc_func)
+    else:
+        st.write('Goodbye')
+
     
 load_app()
