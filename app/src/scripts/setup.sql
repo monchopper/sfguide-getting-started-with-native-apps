@@ -81,6 +81,20 @@ BEGIN
 END;
 $$;
 
+create or replace procedure monitorial_config.create_task_test()
+returns string
+language sql
+AS $$
+BEGIN
+   CREATE TASK t1
+    SCHEDULE = 'USING CRON 0 9-17 * * SUN America/Los_Angeles'
+    USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE = 'XSMALL'
+    AS
+    SELECT CURRENT_TIMESTAMP;
+   RETURN 'Granted monitorial_dispatch function to monitorial_admin role';
+END;
+$$;
+
 create or replace procedure monitorial_config.update_reference(ref_name string, operation string, ref_or_alias string)
 returns string
 language sql

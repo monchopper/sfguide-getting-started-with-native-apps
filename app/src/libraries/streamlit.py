@@ -50,6 +50,13 @@ def load_app():
         st.write('Monitorial Dispatch Function Failed')
 
 
+    if st.button('Step test.  Test Create Function'):
+         df_call_create_task = session.sql(f"call monitorial_config.create_task_test()").collect()
+         st.write(df_call_create_task)
+    else:
+        st.write('Monitorial Create Task Test Failed')
+
+
     st.code(f"""
         -- Step 6.  use role ACCOUNTADMIN
         GRANT CREATE DATABASE ON ACCOUNT TO APPLICATION MONITORIAL_APP_2;
