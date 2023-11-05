@@ -9,7 +9,7 @@ version:
 #artifacts that are distributed from this version of the package
 artifacts:
   setup_script: scripts/setup.sql
-  default_streamlit: app_instance_schema.streamlit
+  default_streamlit: monitorial_config.streamlit
   extension_code: true
 
 #runtime configuration for this version
@@ -17,12 +17,7 @@ configuration:
   log_level: debug
   trace_level: off
 
-references:
-  #- MONITORIAL_NETWORK_INTEGRATION_DEV:
-  #    label: "Monitorial Access Integration"
-  #    description: "A external access integration that exists outside the application"
-  #    privileges:
-  #    - USAGE
-  #    object_type: EXTERNAL ACCESS INTEGRATION
-  #    multi_valued: false
-  #    register_callback: app_instance_schema.update_reference
+#permissions required by this version
+privileges:
+- CREATE DATABASE:
+    description: "Privilege to create the Monitorial Database within the consumer account"

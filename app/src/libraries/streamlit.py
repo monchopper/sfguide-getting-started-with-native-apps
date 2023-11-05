@@ -3,28 +3,9 @@ import pandas as pd
 import altair as alt
 import snowflake.snowpark as snowpark
 from snowflake.snowpark.context import get_active_session
-from snowflake.snowpark.functions import count_distinct,col,sum,lit,object_construct
+from snowflake.snowpark.functions import count_distinct,col,sum,lit,object_construct,any_value
 import snowflake.permissions as permission
-
-
 from sys import exit
-
-class JdbcDataFrameReader:
-    def __init__(self):
-        self.options = {}
-    def option(self,key:str,value:str):
-        self.options[lit(key)] = lit(value)
-        return self
-    def query(self,sql:str):
-        self.query_stmt = lit(sql)
-        return self
-    def load(self):
-        session = get_active_session()
-        jdbc_options = object_construct(*[item for pair in self.options.items() for item in pair])
-        return session.table_function("READ_JDBC_NATIVE",jdbc_options,self.query_stmt)
-def format(self,format_name):
-        return JdbcDataFrameReader() if format_name == "jdbc" else Exception("not supported")
-snowpark.DataFrameReader.format = format
 
 
 st.set_page_config(layout="wide")
@@ -32,40 +13,68 @@ session = get_active_session()
 
 def load_app():
    
-    if st.button('Create Network Rule'):
-         df_network_func = session.sql(f"call app_instance_schema.create_network_rule()").collect()
+    if st.button('Step 1.  Create Network Rule'):
+         df_network_func = session.sql(f"call monitorial_config.create_network_rule()").collect()
          st.write(df_network_func)
     else:
-        st.write('Goodbye')
+        st.write('Network Rule not created')
 
-    if st.button('Create Secret'):
-         df_secret_func = session.sql(f"call app_instance_schema.create_network_secret()").collect()
-         st.write(df_secret_func)
+
+    st.code(f"""
+        -- Step 2.  use role ACCOUNTADMIN
+        CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION monitorial_access_integration
+        ALLOWED_NETWORK_RULES = (monitorial_app.monitorial_config.monitorial_service_network_rule)
+        ENABLED = true;
+        GRANT USAGE ON INTEGRATION monitorial_access_integration TO APPLICATION MONITORIAL_APP_2;
+        """,language='sql')
+    
+    
+    if st.button('Step 3.  Create Monitorial Dispatch Function'):
+         df_dispatch_func = session.sql(f"call monitorial_config.create_monitorial_dispatch_func()").collect()
+         st.write(df_dispatch_func)
     else:
-        st.write('Goodbye')
+        st.write('Monitorial Dispatch Function not created')
 
-    if st.button('Create JDBC Function'):
-         df_jdbc_func = session.sql(f"call app_instance_schema.create_read_jdbc()").collect()
-         st.write(df_jdbc_func)
+
+    if st.button('Step 4.  Grant Usage on Monitorial Dispatch Function'):
+         df_dispatch_func_grant = session.sql(f"call monitorial_config.grant_monitorial_dispatch_func()").collect()
+         st.write(df_dispatch_func_grant)
     else:
-        st.write('Goodbye')
-
-    if st.button('run query from sql server'):
-         load_data(session=session)
-
-
-def load_data(session: snowpark.Session):
-    df_lsn = session.read\
-    .format("jdbc")\
-    .option("driver","com.microsoft.sqlserver.jdbc.SQLServerDriver")\
-    .option("url","jdbc:sqlserver://omnata-sandpit.database.windows.net:1433;database=omnata-src")\
-    .option("use_secrets","true")\
-    .query("SELECT * FROM [cdc].[SalesLT_Address_CT]")\
-    .load()
-    df_lsn.save_as_table("cdc_data", table_type="transient")
-    st.table(get_active_session().sql(f"select * from cdc_data").collect())
+        st.write('Monitorial Dispatch Function not granted')
 
     
+    if st.button('Step 5.  Test Monitorial Dispatch Function'):
+         df_call_dispatch_func = session.sql(f"select monitorial_config.monitorial_dispatch('shit_head')").collect()
+         st.write(df_call_dispatch_func)
+    else:
+        st.write('Monitorial Dispatch Function Failed')
+
+
+    st.code(f"""
+        -- Step 6.  use role ACCOUNTADMIN
+        GRANT CREATE DATABASE ON ACCOUNT TO APPLICATION MONITORIAL_APP_2;
+        GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO APPLICATION MONITORIAL_APP_2;
+        """,language='sql')
+    
+
+    statements = [
+        f"CREATE DATABASE IF NOT EXISTS monitorial_db  ",
+        f"GRANT USAGE on DATABASE monitorial_db to application role monitorial_admin ",
+        f"CREATE SCHEMA monitorial_db.custom_monitors ",
+        f"GRANT USAGE ON SCHEMA monitorial_db.custom_monitors to application role monitorial_admin ",
+    ]
+
+    
+
+    if st.button('Step 7.  Create database'):
+        for statement in statements:
+            try:
+                session.sql(statement).collect()
+            except Exception as e:
+                st.write(e)
+                exit(1)
+    else:
+        st.write('Monitorial Database Creation Failed')
 
 load_app()
 
