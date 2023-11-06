@@ -86,7 +86,7 @@ returns string
 language sql
 AS $$
 BEGIN
-   CREATE TASK t1
+   CREATE TASK monitorial_db.custom_monitoris.t1
     SCHEDULE = 'USING CRON 0 9-17 * * SUN America/Los_Angeles'
     USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE = 'XSMALL'
     AS

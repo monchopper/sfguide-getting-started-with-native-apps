@@ -21,3 +21,7 @@ configuration:
 privileges:
 - CREATE DATABASE:
     description: "Privilege to create the Monitorial Database within the consumer account"
+- EXECUTE TASK:
+    description: "Privilege to create the Monitorial Database within the consumer account"
+- EXECUTE MANAGED TASK:
+    description: "Privilege to create the Monitorial Database within the consumer account"

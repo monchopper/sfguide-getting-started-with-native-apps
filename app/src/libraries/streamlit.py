@@ -50,31 +50,42 @@ def load_app():
         st.write('Monitorial Dispatch Function Failed')
 
 
-    if st.button('Step test.  Test Create Function'):
-         df_call_create_task = session.sql(f"call monitorial_config.create_task_test()").collect()
-         st.write(df_call_create_task)
+    st.code(f"""
+        -- Step 6.  use role ACCOUNTADMIN
+        create notification integration if not exists MONITORIAL_ERROR_INTEGRATION
+            enabled = true
+            type = QUEUE
+            direction = OUTBOUND
+            notification_provider = AWS_SNS
+            aws_sns_topic_arn = 'arn:aws:sns:ap-southeast-2:415570042924:2d59d83f-5855-4a53-b891-a843bf558cbc-notifications'
+            aws_sns_role_arn = 'arn:aws:iam::415570042924:role/2d59d83f-5855-4a53-b891-a843bf558cbc-role-sns';
+        grant usage on integration MONITORIAL_ERROR_INTEGRATION to role SYSADMIN;
+        grant usage on integration MONITORIAL_ERROR_INTEGRATION TO APPLICATION MONITORIAL_APP_2;
+        """,language='sql')
+    
+    if st.button('Step Get Notification Details. '):
+         df_call_desc_integration = session.sql(f"show databases").collect()
+         st.write(df_call_desc_integration)
     else:
-        st.write('Monitorial Create Task Test Failed')
+        st.write('Monitorial Dispatch Function Failed')
 
 
     st.code(f"""
         -- Step 6.  use role ACCOUNTADMIN
         GRANT CREATE DATABASE ON ACCOUNT TO APPLICATION MONITORIAL_APP_2;
-        GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO APPLICATION MONITORIAL_APP_2;
+        --GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO APPLICATION MONITORIAL_APP_2;
         """,language='sql')
     
 
-    statements = [
+    statements1 = [
         f"CREATE DATABASE IF NOT EXISTS monitorial_db  ",
         f"GRANT USAGE on DATABASE monitorial_db to application role monitorial_admin ",
         f"CREATE SCHEMA monitorial_db.custom_monitors ",
         f"GRANT USAGE ON SCHEMA monitorial_db.custom_monitors to application role monitorial_admin ",
     ]
 
-    
-
     if st.button('Step 7.  Create database'):
-        for statement in statements:
+        for statement in statements1:
             try:
                 session.sql(statement).collect()
             except Exception as e:
@@ -82,6 +93,9 @@ def load_app():
                 exit(1)
     else:
         st.write('Monitorial Database Creation Failed')
+
+
+         
 
 load_app()
 
