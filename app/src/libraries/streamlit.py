@@ -49,6 +49,30 @@ def load_app():
     else:
         st.write('Monitorial Dispatch Function Failed')
 
+    if st.button('Step test create warehouse for tasks.'):
+         df_create_warehouse = session.sql(f"call monitorial_config.create_task_warehouse()").collect()
+         st.write(df_create_warehouse)
+    else:
+        st.write('Monitorial Dispatch Function Failed') 
+
+    if st.button('Step test task creation.  Test Creating Task'):
+         df_call_dispatch_func = session.sql(f"call monitorial_config.create_task_test()").collect()
+         st.write(df_call_dispatch_func)
+    else:
+        st.write('Monitorial Dispatch Function Failed')
+
+    if st.button('Step Manually Execute Task'):
+         df = session.sql('''EXECUTE TASK monitorial_assets.t1''').collect()
+         st.write(df)
+    else:
+        st.write('Monitorial Dispatch Function Failed')
+
+    if st.button('Step test Get Snowflake details'):
+         df_call_account_details = session.sql(f"select CURRENT_ORGANIZATION_NAME() as organization_name,current_account_name() AS account_name,current_account() AS account_locator,current_region() AS account_region").collect()
+         st.write(df_call_account_details)
+    else:
+        st.write('Monitorial Dispatch Function Failed')
+
 
     st.code(f"""
         -- Step 6.  use role ACCOUNTADMIN
@@ -64,38 +88,10 @@ def load_app():
         """,language='sql')
     
     if st.button('Step Get Notification Details. '):
-         df_call_desc_integration = session.sql(f"show databases").collect()
-         st.write(df_call_desc_integration)
+         df = session.sql('''desc integration MONITORIAL_ERROR_INTEGRATION''').collect()
+         st.write(df)
     else:
         st.write('Monitorial Dispatch Function Failed')
-
-
-    st.code(f"""
-        -- Step 6.  use role ACCOUNTADMIN
-        GRANT CREATE DATABASE ON ACCOUNT TO APPLICATION MONITORIAL_APP_2;
-        --GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO APPLICATION MONITORIAL_APP_2;
-        """,language='sql')
-    
-
-    statements1 = [
-        f"CREATE DATABASE IF NOT EXISTS monitorial_db  ",
-        f"GRANT USAGE on DATABASE monitorial_db to application role monitorial_admin ",
-        f"CREATE SCHEMA monitorial_db.custom_monitors ",
-        f"GRANT USAGE ON SCHEMA monitorial_db.custom_monitors to application role monitorial_admin ",
-    ]
-
-    if st.button('Step 7.  Create database'):
-        for statement in statements1:
-            try:
-                session.sql(statement).collect()
-            except Exception as e:
-                st.write(e)
-                exit(1)
-    else:
-        st.write('Monitorial Database Creation Failed')
-
-
-         
 
 load_app()
 

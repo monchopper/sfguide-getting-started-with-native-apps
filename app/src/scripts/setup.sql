@@ -5,9 +5,23 @@
 -- Create Application Role and Schema
 create application role if not exists monitorial_admin;
 create or alter versioned schema monitorial_config;
+create or replace schema monitorial_assets;
 
+--CREATE OR REPLACE WAREHOUSE p_task_wh WAREHOUSE_SIZE='XSMALL' INITIALLY_SUSPENDED=TRUE auto_suspend = 60 auto_resume = true;
 -- Create Streamlit app
 create or replace streamlit monitorial_config.streamlit from '/libraries' main_file='streamlit.py';
+
+create or replace procedure monitorial_config.create_task_warehouse()
+returns string
+language sql
+AS $$
+BEGIN
+   CREATE OR REPLACE WAREHOUSE p_task_wh WAREHOUSE_SIZE=XSMALL INITIALLY_SUSPENDED=TRUE auto_suspend = 60 auto_resume = true;
+   grant usage on warehouse p_task_wh to application role monitorial_admin;
+   grant operate on warehouse p_task_wh to application role monitorial_admin;
+   RETURN 'created warehouse';
+END;
+$$;
 create or replace procedure monitorial_config.create_network_rule()
 returns string
 language sql
@@ -81,17 +95,18 @@ BEGIN
 END;
 $$;
 
-create or replace procedure monitorial_config.create_task_test()
+create or replace procedure monitorial_config.create_task_test(TASK_NAME string, OBJECT_NAME string)
 returns string
 language sql
 AS $$
 BEGIN
-   CREATE TASK monitorial_db.custom_monitoris.t1
-    SCHEDULE = 'USING CRON 0 9-17 * * SUN America/Los_Angeles'
-    USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE = 'XSMALL'
+   CREATE TASK monitorial_assets.t1
+    SCHEDULE = '1 minute'
+    WAREHOUSE = 'p_task_wh'
     AS
-    SELECT CURRENT_TIMESTAMP;
-   RETURN 'Granted monitorial_dispatch function to monitorial_admin role';
+    select monitorial_config.monitorial_dispatch('shit_head');
+    alter task monitorial_assets.t1 resume;
+   RETURN 'Task created';
 END;
 $$;
 
@@ -117,9 +132,16 @@ $$;
 
 -- Grant usage and permissions on objects
 grant usage on schema monitorial_config to application role monitorial_admin;
+grant usage on schema monitorial_assets to application role monitorial_admin;
 grant create secret on schema monitorial_config to application role monitorial_admin;
 grant create network rule on schema monitorial_config to application role monitorial_admin;
 grant usage on streamlit monitorial_config.streamlit to application role monitorial_admin;
 grant usage on procedure monitorial_config.create_network_rule() to application role monitorial_admin;
 grant usage on procedure monitorial_config.create_monitorial_dispatch_func() to application role monitorial_admin;
 grant usage on procedure monitorial_config.grant_monitorial_dispatch_func() to application role monitorial_admin;
+grant usage on procedure monitorial_config.create_task_test() to application role monitorial_admin;
+grant usage on procedure monitorial_config.create_task_warehouse() to application role monitorial_admin;
+grant create task on schema monitorial_config to application role monitorial_admin;
+
+--grant usage on warehouse p_task_wh to application role monitorial_admin;
+--grant operate on warehouse p_task_wh to application role monitorial_admin;

@@ -25,3 +25,12 @@ privileges:
     description: "Privilege to create the Monitorial Database within the consumer account"
 - EXECUTE MANAGED TASK:
     description: "Privilege to create the Monitorial Database within the consumer account"
+- CREATE WAREHOUSE:
+    description: "Privilege to create warehouse the Monitorial Database within the consumer account"
+- MANAGE WAREHOUSES:
+    description: "Privilege to manage warehouse the Monitorial Database within the consumer account"
+
+
+    
+
+    
