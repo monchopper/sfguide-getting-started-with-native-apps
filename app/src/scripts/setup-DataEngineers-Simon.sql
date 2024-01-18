@@ -12,55 +12,29 @@ CREATE TABLE IF NOT EXISTS monitorial_assets.Configs (
 );
 
 
-create or replace procedure monitorial_config.deploy_monitorial_sign_up()
+
+create or replace procedure monitorial_config.create_monitorial_get_aws_arn()
 returns string
 language sql
 AS '
 BEGIN
-CREATE OR REPLACE FUNCTION monitorial_sign_up(company string, email string, givenName string, surname string, region_id string, organisation_name string, account_name string, account_locator string, country string)
+CREATE OR REPLACE FUNCTION get_monitorial_get_aws_arn()
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = 3.10
-HANDLER = ''monitorial_sign_up''
-EXTERNAL_ACCESS_INTEGRATIONS = (monitorial_access_integration)
+HANDLER = ''retrieve_arn_from_aws''
 PACKAGES = (''snowflake-snowpark-python'',''requests'')
 AS
 $$
 import _snowflake
 import json
 import requests
+import uuid
 
 session = requests.Session()
 
-def to_object(company, email, givenName, surname, region_id, organisation_name, account_name, account_locator, country: str):
-    data = {}
-    data["company"] = company
-    data["email"] = email
-    data["givenName"] = givenName
-    data["surname"] = surname
-    data["region_id"] = region_id
-    data["organisation_name"] = organisation_name
-    data["account_name"] = account_name
-    data["account_locator"] = account_locator
-    data["country"] = country
-    return data
-
-def to_json(data):
-    return json.dumps(data)
-
-def monitorial_sign_up(company, email, givenName, surname, region_id, organisation_name, account_name, account_locator, country: str):
-    url = ''https://de-monitorial-dev-ae-apim.azure-api.net/admin/monitorial/v1/native_app_sign_up''
-    headers = {''Content-type'': ''application/json'',
-               ''Ocp-Apim-Subscription-Key'': ''4425d1c68fe74c7880b7ae9744ec5daa'',
-               ''Accept'': ''application/json''}
-
-    response = requests.post(url, to_json(to_object(company, email, givenName, surname, region_id, organisation_name, account_name, account_locator, country)), headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return [''Failed to send notification'']
-            
-   
+def retrieve_arn_from_aws():
+   return ["arn:aws:sns:ap-southeast-2:415570042924:2d59d83f-5855-4a53-b891-a843bf558cbc-notifications|arn:aws:iam::415570042924:role/2d59d83f-5855-4a53-b891-a843bf558cbc-role-sns"]
 
 $$;
 END;
@@ -107,7 +81,7 @@ END;
 ';
 create or replace streamlit monitorial_config.streamlit from '/libraries' main_file='streamlit.py';
 
-create or replace procedure monitorial_config.deploy_network_rule()
+create or replace procedure monitorial_config.create_network_rule()
 returns string
 language sql
 AS $$
@@ -121,7 +95,7 @@ BEGIN
 END;
 $$;
 
-create or replace procedure monitorial_config.deploy_monitorial_dispatch_func()
+create or replace procedure monitorial_config.create_monitorial_dispatch_func()
 returns string
 language sql
 AS '
@@ -170,19 +144,17 @@ def send_notification(object_name: str):
 $$;
 END;
 ';
-
-
 create or replace procedure monitorial_config.grant_func_privileges()
 returns string
 language sql
 AS $$
 BEGIN
    GRANT USAGE ON FUNCTION monitorial_dispatch(STRING) to application role monitorial_admin;
-   GRANT USAGE ON FUNCTION monitorial_sign_up(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING) to application role monitorial_admin;
+   GRANT USAGE ON FUNCTION get_monitorial_get_aws_arn() to application role monitorial_admin;
    RETURN 'Granted monitorial_dispatch function to monitorial_admin role';
 END;
 $$;
-create or replace procedure monitorial_config.deploy_task_warehouse()
+create or replace procedure monitorial_config.create_task_warehouse()
 returns string
 language sql
 AS $$
@@ -234,13 +206,13 @@ grant usage on schema monitorial_assets to application role monitorial_admin;
 grant create secret on schema monitorial_config to application role monitorial_admin;
 grant create network rule on schema monitorial_config to application role monitorial_admin;
 grant usage on streamlit monitorial_config.streamlit to application role monitorial_admin;
-grant usage on procedure monitorial_config.deploy_network_rule() to application role monitorial_admin;
-grant usage on procedure monitorial_config.deploy_monitorial_dispatch_func() to application role monitorial_admin;
+grant usage on procedure monitorial_config.create_network_rule() to application role monitorial_admin;
+grant usage on procedure monitorial_config.create_monitorial_dispatch_func() to application role monitorial_admin;
 grant usage on procedure monitorial_config.grant_func_privileges() to application role monitorial_admin;
 grant usage on procedure monitorial_config.create_task_test() to application role monitorial_admin;
-grant usage on procedure monitorial_config.deploy_monitorial_sign_up() to application role monitorial_admin;
+grant usage on procedure monitorial_config.create_monitorial_get_aws_arn() to application role monitorial_admin;
 grant usage on procedure monitorial_config.deploy_setup_monitorial_db_and_assest_creation_sproc() to application role monitorial_admin;
-grant usage on procedure monitorial_config.deploy_task_warehouse() to application role monitorial_admin;
+grant usage on procedure monitorial_config.create_task_warehouse() to application role monitorial_admin;
 grant create task on schema monitorial_config to application role monitorial_admin;
 GRANT SELECT ON TABLE monitorial_assets.Configs TO APPLICATION ROLE monitorial_admin;
 

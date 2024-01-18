@@ -22,25 +22,8 @@ if permissions.get_missing_account_privileges(
 
 def load_app():
 
-    company_name = st.text_input('Enter your company name')
-    given_name = st.text_input('Enter your Given Name')
-    surname = st.text_input('Enter your Surname')
-    email = st.text_input('Enter your Email Address')
-    country = st.text_input('Enter your Country')
-
     df_get_account_details = session.sql(f"select CURRENT_ORGANIZATION_NAME() as organization_name,current_account_name() AS account_name,current_account() AS account_locator,current_region() AS account_region, current_database() as app_database").collect()
-    #pd_get_account_details = df_get_account_details.to_pandas()
-    monitorial_database_name = df_get_account_details[0][4]
-    snowflake_organisation = df_get_account_details[0][0]
-    snowflake_account = df_get_account_details[0][1]
-    snowflake_locator = df_get_account_details[0][2]
-    snowflake_region = df_get_account_details[0][3]
-
-    create_external_access_sql = """CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION monitorial_access_integration
-            ALLOWED_NETWORK_RULES = (""" + monitorial_database_name + """.monitorial_config.monitorial_service_network_rule)
-            ENABLED = true;
-            GRANT USAGE ON INTEGRATION monitorial_access_integration TO APPLICATION MONITORIAL_APP_2;"""
-
+    st.write(df_get_account_details)
    
     df_network_func = session.sql(f"call monitorial_config.deploy_network_rule()").collect()
     st.write(df_network_func)
@@ -50,28 +33,26 @@ def load_app():
     st.write(df_create_database)
     st.write('Monitorial database and sprocs not created')
 
-    st.code(create_external_access_sql,language='sql')
-
-    #st.code(f"""
-    #    -- Copy this code and run it in Snowsight under the accountadmin role
-    #    use role accountadmin;
-    #    grant ownership on procedure  montorial_db.monitorial_assets.run_setup_external_access_integrations() TO ROLE accountadmin;
-    #    call montorial_db.monitorial_assets.run_setup_external_access_integrations();
-    #    """,language='sql')
+    st.code(f"""
+        -- Copy this code and run it in Snowsight under the accountadmin role
+        use role accountadmin;
+        grant ownership on procedure  montorial_db.monitorial_assets.run_setup_external_access_integrations() TO ROLE accountadmin;
+        call montorial_db.monitorial_assets.run_setup_external_access_integrations();
+        """,language='sql')
     
     #as of now.  The External network access has been created.  Need to call the func that ( the aws stuff and create the 
     #notification integration
 
 
     
-    if st.button('Create Monitorial Sign Up Function'):
-        df_create_get_monitorial_aws_arn = session.sql(f"call deploy_monitorial_sign_up()").collect()
+    if st.button('Create Get ARN-AWS details from Monitorial'):
+        df_create_get_monitorial_aws_arn = session.sql(f"call deploy_get_monitorial_get_aws_arn()").collect()
         st.write(df_create_get_monitorial_aws_arn)
     else:
-        st.write( 'Monitorial Sign Up Function - Failed')
+        st.write('Monitorial get aws arn func failed')
 
-    if st.button('Create Monitorial Dispatch Function'):
-         df_dispatch_func = session.sql(f"call deploy_monitorial_dispatch_func()").collect()
+    if st.button('Step 3.  Create Monitorial Dispatch Function'):
+         df_dispatch_func = session.sql(f"call monitorial_config.deploy_monitorial_dispatch_func()").collect()
          st.write(df_dispatch_func)
     else:
         st.write('Monitorial Dispatch Function not created')
@@ -90,13 +71,17 @@ def load_app():
 
 # Adapt this to grab from Monitorial Cloud
     if st.button('Get ARN-AWS details from Monitorial'):
-        #df_get_monitorial_endpoints = session.sql(f"select MONITORIAL_CONFIG.monitorial_sign_up(?,?,?,?,?,?,?,?,?)", params=[company_name, email, given_name, surname, snowflake_region, snowflake_organisation, snowflake_account, snowflake_locator, country]).collect()
-        df_get_monitorial_endpoints = session.sql(f"select MONITORIAL_CONFIG.monitorial_sign_up('Jon','jon@random.com','Jon','Hopper','aws_ap_southeast_2','JON','JON1','JON2','New Zealand')").collect()
-        st.write(df_get_monitorial_endpoints)
+        df_get_monitorial_aws_arn = session.sql(f"select MONITORIAL_CONFIG.get_monitorial_get_aws_arn() as aws_arn").collect()
+        st.write(df_get_monitorial_aws_arn)
     else:
         st.write('Error getting AWS-ARN Stuff')
+    
+
+    
 
 
+
+    
     st.code(f"""
         EXECUTE IMMEDIATE $$
         DECLARE 
@@ -167,6 +152,7 @@ def load_app():
         st.write('Test task works')
 
     """
+
 
 load_app()
 
