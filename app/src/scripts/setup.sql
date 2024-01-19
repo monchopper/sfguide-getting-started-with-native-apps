@@ -8,8 +8,38 @@ create or alter versioned schema monitorial_config;
 create or replace schema monitorial_assets;
 
 CREATE TABLE IF NOT EXISTS monitorial_assets.Configs (
-   setting object
+   name varchar,
+   setting variant
 );
+
+CREATE VIEW IF NOT EXISTS monitorial_assets.cloud_endpoint AS
+with base_parse_json as (
+    select 
+        parse_json(setting) as payload 
+    from 
+        configs 
+    where 
+        name = 'cloud_keys' 
+)
+select 
+    payload:customer_id::string as customer_id,
+    payload:aws.apiIntegration.aws_external_id::string as apiIntegration_aws_external_id,
+    payload:aws.apiIntegration.configuration_complete::string as apiIntegration_configuration_complete,
+    payload:aws.apiIntegration.iam_role_arn::string as apiIntegration_iam_role_arn,
+    payload:aws.apiIntegration.iam_user_arn::string as apiIntegration_iam_user_arn,
+    payload:aws.apiIntegration.provisioning_requested::string as apiIntegration_provisioning_requested,
+    payload:aws.notificationIntegration.aws_external_id::string as notificationIntegration_aws_external_id,
+    payload:aws.notificationIntegration.configuration_complete::string as notificationIntegration_configuration_complete,
+    payload:aws.notificationIntegration.iam_role_arn::string as notificationIntegration_iam_role_arn,
+    payload:aws.notificationIntegration.iam_user_arn::string as notificationIntegration_iam_user_arn,
+    payload:aws.notificationIntegration.policy_arn::string as notificationIntegration_policy_arn,
+    payload:aws.notificationIntegration.provisioning_requested::string as notificationIntegration_provisioning_requested,
+    payload:aws.notificationIntegration.subscription_arn::string as notificationIntegration_subscription_arn,
+    payload:aws.notificationIntegration.subscription_confirmed::string as notificationIntegration_subscription_confirmed,
+    payload:aws.notificationIntegration.topic_arn::string as notificationIntegration_topic_arn
+from 
+    base_parse_json
+;
 
 
 create or replace procedure monitorial_config.deploy_monitorial_sign_up()
@@ -242,7 +272,8 @@ grant usage on procedure monitorial_config.deploy_monitorial_sign_up() to applic
 grant usage on procedure monitorial_config.deploy_setup_monitorial_db_and_assest_creation_sproc() to application role monitorial_admin;
 grant usage on procedure monitorial_config.deploy_task_warehouse() to application role monitorial_admin;
 grant create task on schema monitorial_config to application role monitorial_admin;
-GRANT SELECT ON TABLE monitorial_assets.Configs TO APPLICATION ROLE monitorial_admin;
+GRANT ALL ON TABLE monitorial_assets.Configs TO APPLICATION ROLE monitorial_admin;
+GRANT ALL ON VIEW monitorial_assets.cloud_endpoint TO APPLICATION ROLE monitorial_admin;
 
 --grant usage on warehouse p_task_wh to application role monitorial_admin;
 --grant operate on warehouse p_task_wh to application role monitorial_admin;

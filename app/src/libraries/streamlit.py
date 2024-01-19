@@ -28,7 +28,7 @@ def load_app():
     email = st.text_input('Enter your Email Address')
     country = st.text_input('Enter your Country')
 
-    df_get_account_details = session.sql(f"select CURRENT_ORGANIZATION_NAME() as organization_name,current_account_name() AS account_name,current_account() AS account_locator,current_region() AS account_region, current_database() as app_database").collect()
+    df_get_account_details = session.sql(f"select CURRENT_ORGANIZATION_NAME() as organization_name,current_account_name() AS account_name,current_account() AS account_locator,lower(current_region()) AS account_region, current_database() as app_database").collect()
     #pd_get_account_details = df_get_account_details.to_pandas()
     monitorial_database_name = df_get_account_details[0][4]
     snowflake_organisation = df_get_account_details[0][0]
@@ -72,6 +72,7 @@ def load_app():
 
     if st.button('Create Monitorial Dispatch Function'):
          df_dispatch_func = session.sql(f"call deploy_monitorial_dispatch_func()").collect()
+         
          st.write(df_dispatch_func)
     else:
         st.write('Monitorial Dispatch Function not created')
@@ -89,12 +90,49 @@ def load_app():
         st.write('Test Monitorial Dispatch Function Failed')
 
 # Adapt this to grab from Monitorial Cloud
-    if st.button('Get ARN-AWS details from Monitorial'):
-        #df_get_monitorial_endpoints = session.sql(f"select MONITORIAL_CONFIG.monitorial_sign_up(?,?,?,?,?,?,?,?,?)", params=[company_name, email, given_name, surname, snowflake_region, snowflake_organisation, snowflake_account, snowflake_locator, country]).collect()
-        df_get_monitorial_endpoints = session.sql(f"select MONITORIAL_CONFIG.monitorial_sign_up('Jon','jon@random.com','Jon','Hopper','aws_ap_southeast_2','JON','JON1','JON2','New Zealand')").collect()
+        
+
+    create_external_access_sql = """insert into monitorial_assets.Configs (name, setting) select 'cloud_keys', 
+    MONITORIAL_CONFIG.monitorial_sign_up('""" + company_name + """','""" + email + """','""" + given_name + """','""" + surname + """','""" + snowflake_region.lower() + """','""" + snowflake_organisation + """','""" + snowflake_account + """','""" + snowflake_locator + """','""" + country + """')::variant"""
+    
+    st.code(create_external_access_sql,language='sql')
+    
+    if st.button('Register with Monitorial Cloud'):
+       
+        df_get_monitorial_endpoints = session.sql(create_external_access_sql).collect()
+        
         st.write(df_get_monitorial_endpoints)
     else:
-        st.write('Error getting AWS-ARN Stuff')
+        st.write('Register with Monitorial Cloud - Failed')
+
+    if st.button('Show Confis table'):
+        df_get_configs_table = session.sql(f"select * from monitorial_assets.configs").collect()
+        
+        st.write(df_get_configs_table)
+    else:
+        st.write('Retrieving data from configs table - Failed')
+    
+    if st.button('Show cloud endpoints view'):
+        df_get_cloud_endpoints = session.sql(f"select * from monitorial_assets.cloud_endpoint").collect()
+        
+        st.write(df_get_cloud_endpoints)
+    else:
+        st.write('Retrieving data from configs table - Failed')
+
+    aws_sns_topic_arn = df_get_cloud_endpoints[0][14]
+    aws_sns_role_arn = df_get_cloud_endpoints[0][8]
+
+    st.code(f"""
+        create notification integration if not exists MONITORIAL_ERROR_INTEGRATION
+            enabled = true
+            type = QUEUE
+            direction = OUTBOUND
+            notification_provider = AWS_SNS
+            aws_sns_topic_arn = '""" + aws_sns_topic_arn + """'
+            aws_sns_role_arn = '""" + aws_sns_role_arn + """';
+        GRANT USAGE ON INTEGRATION MONITORIAL_ERROR_INTEGRATION TO APPLICATION MONITORIAL_APP_2;
+        """,language='sql')
+
 
 
     st.code(f"""
