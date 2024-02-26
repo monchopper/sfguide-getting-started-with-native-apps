@@ -96,6 +96,44 @@ $$;
 END;
 ';
 
+create or replace procedure monitorial_config.deploy_monitorial_get_all_metadata()
+returns string
+language sql
+AS '
+BEGIN
+CREATE OR REPLACE FUNCTION monitorial_get_all_metadata()
+RETURNS STRING
+LANGUAGE PYTHON
+RUNTIME_VERSION = 3.10
+HANDLER = ''monitorial_get_rules''
+EXTERNAL_ACCESS_INTEGRATIONS = (monitorial_access_integration)
+PACKAGES = (''snowflake-snowpark-python'',''requests'')
+AS
+$$
+import _snowflake
+import json
+import requests
+
+session = requests.Session()
+
+def monitorial_get_rules():
+    url = ''https://de-monitorial-dev-ae-apim.azure-api.net/admin/monitorial/v1/configuration''
+    headers = {''company_id'': ''3bbdab71-ba27-40d4-85b1-14b3037cecc1'',
+               ''Ocp-Apim-Subscription-Key'': ''4425d1c68fe74c7880b7ae9744ec5daa'',
+               ''user_id'': ''bbc77e86-81e4-4eff-890c-ea5de4074a68''}
+
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return [''Failed to send notification'']
+            
+$$;
+END;
+';
+
+
+
 
 create or replace procedure monitorial_config.deploy_setup_monitorial_db_and_assest_creation_sproc()
 returns string
@@ -209,6 +247,7 @@ AS $$
 BEGIN
    GRANT USAGE ON FUNCTION monitorial_dispatch(STRING) to application role monitorial_admin;
    GRANT USAGE ON FUNCTION monitorial_sign_up(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING) to application role monitorial_admin;
+   GRANT USAGE ON FUNCTION monitorial_get_all_metadata() to application role monitorial_admin;
    RETURN 'Granted monitorial_dispatch function to monitorial_admin role';
 END;
 $$;
@@ -269,6 +308,7 @@ grant usage on procedure monitorial_config.deploy_monitorial_dispatch_func() to 
 grant usage on procedure monitorial_config.grant_func_privileges() to application role monitorial_admin;
 grant usage on procedure monitorial_config.create_task_test() to application role monitorial_admin;
 grant usage on procedure monitorial_config.deploy_monitorial_sign_up() to application role monitorial_admin;
+grant usage on procedure monitorial_config.deploy_monitorial_get_all_metadata() to application role monitorial_admin;
 grant usage on procedure monitorial_config.deploy_setup_monitorial_db_and_assest_creation_sproc() to application role monitorial_admin;
 grant usage on procedure monitorial_config.deploy_task_warehouse() to application role monitorial_admin;
 grant create task on schema monitorial_config to application role monitorial_admin;

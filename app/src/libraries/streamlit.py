@@ -52,18 +52,7 @@ def load_app():
 
     st.code(create_external_access_sql,language='sql')
 
-    #st.code(f"""
-    #    -- Copy this code and run it in Snowsight under the accountadmin role
-    #    use role accountadmin;
-    #    grant ownership on procedure  montorial_db.monitorial_assets.run_setup_external_access_integrations() TO ROLE accountadmin;
-    #    call montorial_db.monitorial_assets.run_setup_external_access_integrations();
-    #    """,language='sql')
-    
-    #as of now.  The External network access has been created.  Need to call the func that ( the aws stuff and create the 
-    #notification integration
-
-
-    
+       
     if st.button('Create Monitorial Sign Up Function'):
         df_create_get_monitorial_aws_arn = session.sql(f"call deploy_monitorial_sign_up()").collect()
         st.write(df_create_get_monitorial_aws_arn)
@@ -72,6 +61,13 @@ def load_app():
 
     if st.button('Create Monitorial Dispatch Function'):
          df_dispatch_func = session.sql(f"call deploy_monitorial_dispatch_func()").collect()
+         
+         st.write(df_dispatch_func)
+    else:
+        st.write('Monitorial Dispatch Function not created')
+
+    if st.button('Create Monitorial Get Rules Function'):
+         df_dispatch_func = session.sql(f"call deploy_monitorial_get_rules()").collect()
          
          st.write(df_dispatch_func)
     else:
@@ -105,7 +101,7 @@ def load_app():
     else:
         st.write('Register with Monitorial Cloud - Failed')
 
-    if st.button('Show Confis table'):
+    if st.button('Show Config table'):
         df_get_configs_table = session.sql(f"select * from monitorial_assets.configs").collect()
         
         st.write(df_get_configs_table)
@@ -116,11 +112,22 @@ def load_app():
         df_get_cloud_endpoints = session.sql(f"select * from monitorial_assets.cloud_endpoint").collect()
         
         st.write(df_get_cloud_endpoints)
+        aws_sns_topic_arn = df_get_cloud_endpoints[0][14]
+        aws_sns_role_arn = df_get_cloud_endpoints[0][8]
+        customer_id = df_get_cloud_endpoints[0][0]
+
     else:
         st.write('Retrieving data from configs table - Failed')
 
-    aws_sns_topic_arn = df_get_cloud_endpoints[0][14]
-    aws_sns_role_arn = df_get_cloud_endpoints[0][8]
+    #get_monitorial_rules = """select * from select MONITORIAL_CONFIG.monitorial_get_rules(""" + customer_id + """)"""
+    
+
+    if st.button('Show Monitorial Rules'):
+        df_get_cloud_config = session.sql(f"select MONITORIAL_CONFIG.monitorial_get_all_metadata()").collect()
+        
+        st.write(df_get_cloud_config)
+    else:
+        st.write('Retrieving data from cloud config - Failed')
 
     st.code(f"""
         create notification integration if not exists MONITORIAL_ERROR_INTEGRATION
@@ -130,61 +137,26 @@ def load_app():
             notification_provider = AWS_SNS
             aws_sns_topic_arn = '""" + aws_sns_topic_arn + """'
             aws_sns_role_arn = '""" + aws_sns_role_arn + """';
-        GRANT USAGE ON INTEGRATION MONITORIAL_ERROR_INTEGRATION TO APPLICATION MONITORIAL_APP_2;
+        grant usage on integration monitorial_error_integration to application monitorial_app_2;
+        describe integration monitorial_error_integration;
+        select "property",object_construct(*):property_value::string as value_to_copy_paste from table(result_scan(last_query_id())) where "property" in ('SF_AWS_IAM_USER_ARN','SF_AWS_EXTERNAL_ID');
+
         """,language='sql')
 
-
-
-    st.code(f"""
-        EXECUTE IMMEDIATE $$
-        DECLARE 
-            res RESULTSET DEFAULT (DESCRIBE INTEGRATION MONITORIAL_ERROR_INTEGRATION);
-            query varchar default 'select object_construct(*):property_value::string as sf_aws_external_id from table(result_scan(last_query_id())) where "property" = ?';
-                query_create_not_int default 'create notification integration if not exists MONITORIAL_ERROR_INTEGRATION
-                enabled = true
-                type = QUEUE
-                direction = OUTBOUND
-                notification_provider = AWS_SNS
-                aws_sns_topic_arn = "arn:aws:sns:ap-southeast-2:415570042924:2d59d83f-5855-4a53-b891-a843bf558cbc-notifications"
-                aws_sns_role_arn = "arn:aws:iam::415570042924:role/2d59d83f-5855-4a53-b891-a843bf558cbc-role-sns"';
-            notification_propery varchar default 'SF_AWS_EXTERNAL_ID';
-            res_integrations resultset;
-        BEGIN 
-            EXECUTE IMMEDIATE query_create_not_int;
-            DESC INTEGRATION MONITORIAL_ERROR_INTEGRATION;
-            res_integrations := (EXECUTE IMMEDIATE :query USING (notification_propery));
-        RETURN table(res_integrations);
-        END;
-        $$
-        ;
-""",language='sql')
-
-   
-
-    
-
     sf_aws_external_id = st.text_input('Enter the SF_AWS_EXTERNAL_ID from the above query:')
+    sf_aws_iam_user_arn = st.text_input('Enter the SF_AWS_IAM_USER_ARN from the above query:')
 
-   
+
+
+    """
     if st.button('Step 88 Show Tasks'):
          df_show_tasks = session.sql(f"show tasks in account").collect()
          st.write(df_show_tasks)
     else:
         st.write('Cannot show tasks')
 
-    """
-    if st.button('Step 4.  Grant Usage on Monitorial Dispatch Function'):
-         df_dispatch_func_grant = session.sql(f"call monitorial_config.grant_monitorial_dispatch_func()").collect()
-         st.write(df_dispatch_func_grant)
-    else:
-        st.write('Monitorial Dispatch Function not granted')
-
-    
-    if st.button('Step 5.  Test Monitorial Dispatch Function'):
-         df_call_dispatch_func = session.sql(f"select monitorial_config.monitorial_dispatch('shit_head')").collect()
-         st.write(df_call_dispatch_func)
-    else:
-        st.write('Monitorial Dispatch Function Failed')
+ 
+  
 
     if st.button('Test create warehouse for tasks.'):
          df_create_warehouse = session.sql(f"call monitorial_config.deploy_task_warehouse()").collect()
